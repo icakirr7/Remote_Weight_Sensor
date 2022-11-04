@@ -1,0 +1,89 @@
+ ARDUINO KISMI
+
+- Gerekli kütüphaneler eklendi.(ESP8266WiFi.h, ESP8266HTTPClient.h, WiFiClient.h, "HX711.h", ESP8266WebServer.h kütüphaneleri.)
+
+- Sabit değer olarak ESP8266'nin bağlanacağı WiFi ismi, şifresi ve ESP8266'nın veriyi göndereceği web adresi atandı.(ssid, password, servername)
+
+- Kullanıcı api key değeri atandı.(apiKeyValue)
+
+- HX711 kütüphanesinden bir nesne çağırıldı. (scale)
+
+- Sabit değer olarak LOADCELL için DOUT_PIN ve SCK_PIN değerleriatandı.(LOADCELL_DOUT_PIN=12, LOADCELL_SCK_PIN=13)
+
+- Float val1 ve String data olarak tanımlanan değerler MySQL veritabanına kaydedilecek olan verinin hesaplanması için tanımlandı.
+
+-> setup kısmında;
+
+- Baud rate 115200 seçildi ve scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN) ile işlemler atandı.
+
+- Önceden ağırlığı bilinen bir nesne ile dara alma işlemi yapıldı.
+(uygulamada kalibrasyon faktörü olan -1994.63, scale.setScale() içerisinde. Bu işlemin detayları için https://randomnerdtutorials.com/esp8266-load-cell-hx711/ sayfasını inceleyiniz.)
+
+- WiFi bağlantı durumu başlangıcı ve kontrolü sonucunda yerel ip ataması yapıldı.
+
+##Not: ESP8266'nın aldığı ip adresi ile bağlı olduğu bilgisayar ip adresi elbette farklıdır ve uygulamada apache server kullanıldığı için bilgisayarın ip adresi ile NAT yönlendirmesi işlemleri yapılmalıdır. Yukarıda tanımlanacak olan serverName değişkenindeki ip adresine bilgisayarın sahip olduğu ip adresi yazılmalıdır.
+
+-> loop kısmında;
+
+- WiFi bağlı olduğunda http isteği gönderecek şekilde ayarlandı.
+
+- "scale" nesnesi ile "get_units()" fonksiyonu çağırılarak "val1" değişkenine, HX711'den okunan(dara işlemi yapıldığından normal değerler gelecektir) değerler atandı.
+
+- "val1" değişkeni "string" türüne dönüştürülerek "data" değişkenine atandı.
+
+ 
+##################################################################################################
+##################################################################################################
+ WEB KISMI
+
+- XAMPP kurulumu yapıldıktan sonra "Apache Server" ve "MySQL" aktif edildi.
+
+- XAMPP dosyalarının(değiştirilmediyse C'de) içerisindeki "htdocs" klasörünün içerisinde istenen klasör adı yazıldı.(bu uygulamada "loadcell")
+
+- loadcell klasörünün içerisine "post-esp-data.php" dosyası oluşturuldu.
+
+-> post-esp-data.php içerisinde;
+
+- servername=localhost(xampp apache server varsayılanı)
+
+- dbname=example_esp_data("http://localhost/phpmyadmin/" adresinde oluşturulacak olan veritabanı ismi)
+
+- Bu veritabanı içerisine "sensordata" isimli tablo oluşturuldu.
+
+- Bu veritabanı için "yetkiler" kısmında kullanıcı oluşturuldu ve kullanıcı adı/şifre kombinasyonu php
+kodunun içerisine yazıldı.
+
+- Kullanıcı api_key değişkeni php dosyası içerisinde yazıldı.(uygulamada "tPmAT5Ab3j7F9" kullanıldı.)
+
+- Api keyler eşleştiğinde "value1" değişkeni "value1" olarak değişkenine atandı.
+
+- MySQL bağlantısı oluşturuldu. ( $conn = new mysqli($servername, $username, $password, $dbname);)
+
+- Bağlantı kontrolü yapıldıktan sonra veritabanında oluşturulan tabloya "value1" içerisine gelen verileri ekleyecek SQL sorgusu yazıldı. ($sql = "INSERT INTO SensorData (value1) VALUES ('" . $value1 . "')";)
+
+######################################################################################################
+
+ esp-data.php
+
+- İsimlerde karışıklık olmaması adına bu dosya "htdocs/loadcell/public_html" şeklinde bir dizinin içerisinde oluşturuldu. 
+
+- Oluşturulan sayfa aynı zamanda çalışacak olan sayfadır. İçerisinde HTML nesnelerine, PHP ile veritabanından veri çekildi ve JavaScript komutuyla sayfa yenilenmeden değerler güncellenebilir yapıldı.
+
+-> JavaScript;
+
+- Web sayfasını yenilemeden güncellemek için  fonksiyon oluşturuldu.( loadArduino() )
+
+- CSS ile gövde ve id'si alınan içeriğin düzenlemesi yapıldı.
+
+- PHP ile MySQL bağlantısı sağlandı.
+
+- Veritabanındaki "SensorData" tablosundan istenen veri SQL sorgusuyla çekildi. ($val)
+
+-> HTML nesnelerinin içerisine yazılacaklar;
+
+- "body" nesnesinin "onload" özelliğine "setInterval(loadArduino(),1000);" yazarak 1000ms aralıklarla bu fonksiyonu çalıştırması sağlandı.
+
+- "p" nesnesinin id'si "myid" yazılarak fonksiyona parametre olarak gönderildi, içeriği ise PHP ile MySQL'den okunan veri olarak ayarlandı.
+
+ 
+
